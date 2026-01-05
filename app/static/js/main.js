@@ -129,8 +129,10 @@ class JarvisAssistant {
             
             if (data.status === 'success') {
                 this.addMessage(data.response || data.message, 'assistant');
+                                this.speak(data.response || data.message);
             } else {
                 this.addMessage('Error: ' + data.message, 'assistant');
+                                this.speak('Error: ' + data.message);
             }
         } catch (error) {
             console.error('Error processing command:', error);
@@ -152,6 +154,16 @@ class JarvisAssistant {
         
         // Scroll to bottom
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+
+        speak(text) {
+        if ('speechSynthesis' in window) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'es-ES';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
     }
 
     clearChat() {
