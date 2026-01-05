@@ -33,12 +33,12 @@ def process_voice():
         if not command:
             return jsonify({'status': 'error', 'message': 'No command provided'}), 400
         
-        # Try Ollama first with mistral model
+        # Try Ollama first with llama3.2:1b model
         try:
             ollama_response = requests.post(
                 f'{OLLAMA_URL}/api/generate',
                 json={
-                    'model': 'mistral',
+                    'model': 'llama3.2:1b',
                     'prompt': f'Eres Jarvis, un asistente inteligente estilo Iron Man. Responde en español de forma breve y concisa: {command}',
                     'stream': False
                 },
@@ -51,28 +51,24 @@ def process_voice():
                 
                 return jsonify({
                     'status': 'success',
-                    'message': f'Comando procesado',
-                    'response': response_text,
-                    'source': 'Ollama Mistral',
-                    'speak': True
+                    'message': response_text,
+                    'source': 'ollama'
                 })
-        except Exception as ollama_error:
-            print(f'Ollama error: {ollama_error}')
+        except Exception as e:
+            print(f"Ollama error: {e}")
         
         # Fallback to Gemini if Ollama fails
         if GEMINI_API_KEY:
             try:
-                gemini_url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}'
                 gemini_response = requests.post(
-                    gemini_url,
+                    f'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}',
                     json={
                         'contents': [{
                             'parts': [{
                                 'text': f'Eres Jarvis, un asistente inteligente estilo Iron Man. Responde en español de forma breve y concisa: {command}'
                             }]
                         }]
-                    },
-                    timeout=30
+                    }
                 )
                 
                 if gemini_response.status_code == 200:
@@ -81,40 +77,21 @@ def process_voice():
                     
                     return jsonify({
                         'status': 'success',
-                        'message': f'Comando procesado',
-                        'response': response_text,
-                        'source': 'Google Gemini',
-                        'speak': True
+                        'message': response_text,
+                        'source': 'gemini'
                     })
-            except Exception as gemini_error:
-                print(f'Gemini error: {gemini_error}')
+            except Exception as e:
+                print(f"Gemini error: {e}")
         
-        # If both fail, return fallback response
+        # If both fail, return fallback
         return jsonify({
             'status': 'success',
-            'message': f'Comando recibido',
-            'response': f'Entendido, "{command}". Actualmente estoy configurando los servicios de IA. En breve podré responder con más detalle.',
-            'source': 'Fallback',
-            'speak': True
+            'message': f'Comando recibido: {command}. Sistemas AI temporalmente no disponibles.',
+            'source': 'fallback'
         })
         
     except Exception as e:
-        print(f'Error general: {str(e)}')
-        return jsonify({'status': 'error', 'message': str(e), 'speak': False}), 500
-
-@app.route('/api/health', methods=['GET'])
-def health():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'healthy',
-        'service': 'Jarvis-ADA',
-        'ollama_url': OLLAMA_URL,
-        'gemini_configured': bool(GEMINI_API_KEY)
-    })
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 7777))
-    print(f'Starting Jarvis-ADA on port {port}')
-    print(f'Ollama URL: {OLLAMA_URL}')
-    print(f'Gemini API configured: {bool(GEMINI_API_KEY)}')
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=7777, debug=True)
