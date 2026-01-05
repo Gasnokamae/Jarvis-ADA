@@ -1,0 +1,255 @@
+version: '3.8'
+
+# JARVIS-ADA HOME SECURITY & AUTOMATION SYSTEM
+# Sistema completo de seguridad del hogar con Frigate, análisis AI y domótica
+# Compatible con cualquier cámara: RTSP, P2P, ONVIF, Dahua, Hikvision, etc.
+# Interfaz simple para usuarios sin conocimientos técnicos
+
+services:
+  
+  # ======================================
+  # FRIGATE NVR - Sistema de Video Vigilancia con AI
+  # ======================================
+  frigate:
+    container_name: jarvis-frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: unless-stopped
+    privileged: true
+    shm_size: '256mb'
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config/frigate:/config
+      - ./storage/frigate:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "5000:5000"  # Web UI
+      - "8554:8554"  # RTSP feeds
+      - "8555:8555/tcp" # WebRTC
+      - "8555:8555/udp" # WebRTC
+    environment:
+      FRIGATE_RTSP_PASSWORD: "jarvis2026"
+    devices:
+      - /dev/bus/usb:/dev/bus/usb  # Para Google Coral USB
+      # - /dev/apex_0:/dev/apex_0  # Si tienes Coral PCIe
+    networks:
+      - jarvis-security
+
+  # ======================================
+  # HOME ASSISTANT - Hub de Domótica
+  # ======================================
+  homeassistant:
+    container_name: jarvis-homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    volumes:
+      - ./config/homeassistant:/config
+      - /etc/localtime:/etc/localtime:ro
+      - /run/dbus:/run/dbus:ro
+    environment:
+      - TZ=Europe/Madrid
+    # Puerto 8123 (usa network_mode: host)
+
+  # ======================================
+  # DOUBLE TAKE - Reconocimiento Facial
+  # ======================================
+  doubletake:
+    container_name: jarvis-doubletake
+    image: jakowenko/double-take:latest
+    restart: unless-stopped
+    volumes:
+      - ./config/doubletake:/.storage
+    ports:
+      - "3000:3000"
+    environment:
+      - TZ=Europe/Madrid
+    networks:
+      - jarvis-security
+
+  # ======================================
+  # MQTT BROKER - Comunicación entre dispositivos
+  # ======================================
+  mosquitto:
+    container_name: jarvis-mqtt
+    image: eclipse-mosquitto:latest
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto:/mosquitto/config
+      - ./storage/mosquitto/data:/mosquitto/data
+      - ./storage/mosquitto/log:/mosquitto/log
+    networks:
+      - jarvis-security
+
+  # ======================================
+  # WYZE BRIDGE - Para cámaras Wyze
+  # ======================================
+  wyze-bridge:
+    container_name: jarvis-wyze-bridge
+    image: mrlt8/wyze-bridge:latest
+    restart: unless-stopped
+    ports:
+      - "1935:1935"  # RTMP
+      - "8554:8554"  # RTSP
+      - "8888:8888"  # HLS
+      - "8889:8889"  # WebRTC
+      - "8189:8189/udp" # WebRTC
+      - "5001:5000"  # Web UI
+    environment:
+      - WYZE_EMAIL=
+      - WYZE_PASSWORD=
+      - API_ID=
+      - API_KEY=
+    volumes:
+      - ./config/wyze:/config
+    networks:
+      - jarvis-security
+
+  # ======================================
+  # SCRYPTED - Universal Camera Platform
+  # Soporta: Ring, Nest, Arlo, Unifi, ONVIF, etc.
+  # ======================================
+  scrypted:
+    container_name: jarvis-scrypted
+    image: koush/scrypted:latest
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config/scrypted:/server/volume
+      - /var/run/dbus:/var/run/dbus
+      - /var/run/avahi-daemon/socket:/var/run/avahi-daemon/socket
+    environment:
+      - TZ=Europe/Madrid
+    # Puerto 10443 (HTTPS), 11080 (HTTP)
+
+  # ======================================
+  # GO2RTC - Universal Streaming Server
+  # Convierte cualquier cámara a RTSP, WebRTC, etc.
+  # ======================================
+  go2rtc:
+    container_name: jarvis-go2rtc
+    image: alexxit/go2rtc:latest
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config/go2rtc:/config
+    # Puerto 1984
+
+  # ======================================
+  # CAMERA DISCOVERY - Descubrimiento automático de cámaras
+  # ======================================
+  camera-discovery:
+    container_name: jarvis-camera-discovery
+    build:
+      context: ./app/modules/security
+      dockerfile: Dockerfile.discovery
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./config/cameras:/config
+      - ./app/modules/security:/app
+    environment:
+      - SCAN_INTERVAL=300
+      - AUTO_ADD_CAMERAS=true
+      - FRIGATE_URL=http://localhost:5000
+    depends_on:
+      - frigate
+    networks:
+      - jarvis-security
+
+  # ======================================
+  # AI VIDEO ANALYZER - Análisis inteligente de video
+  # ======================================
+  ai-analyzer:
+    container_name: jarvis-ai-analyzer
+    build:
+      context: ./app/modules/security
+      dockerfile: Dockerfile.analyzer
+    restart: unless-stopped
+    volumes:
+      - ./storage/frigate:/media/frigate:ro
+      - ./storage/analysis:/analysis
+      - ./app/modules/security:/app
+    ports:
+      - "8001:8000"
+    environment:
+      - FRIGATE_URL=http://frigate:5000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ANALYSIS_INTERVAL=60
+    depends_on:
+      - frigate
+      - mosquitto
+    networks:
+      - jarvis-security
+
+  # ======================================
+  # WEB UI - Interfaz simple para todos
+  # ======================================
+  security-ui:
+    container_name: jarvis-security-ui
+    build:
+      context: ./app/ui/security
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./app/ui/security:/app
+    environment:
+      - FRIGATE_URL=http://frigate:5000
+      - HOMEASSISTANT_URL=http://localhost:8123
+      - DOUBLETAKE_URL=http://doubletake:3000
+    depends_on:
+      - frigate
+      - homeassistant
+    networks:
+      - jarvis-security
+
+  # ======================================
+  # NOTIFICATION SERVICE - Alertas y notificaciones
+  # ======================================
+  notifications:
+    container_name: jarvis-notifications
+    build:
+      context: ./app/modules/security
+      dockerfile: Dockerfile.notifications
+    restart: unless-stopped
+    volumes:
+      - ./config/notifications:/config
+      - ./app/modules/security:/app
+    environment:
+      - MQTT_BROKER=mosquitto
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - ENABLE_VOICE_ALERTS=true
+    depends_on:
+      - mosquitto
+    networks:
+      - jarvis-security
+
+networks:
+  jarvis-security:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  frigate-config:
+  frigate-media:
+  homeassistant-config:
+  doubletake-storage:
+  mosquitto-data:
+  mosquitto-log:
+  wyze-config:
+  scrypted-volume:
+  go2rtc-config:
+  cameras-config:
+  analysis-storage:
+  notifications-config:
