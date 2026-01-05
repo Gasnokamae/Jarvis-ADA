@@ -8,48 +8,70 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>JARVIS-ADA</h1>
-            <p class="subtitle">AI Voice Assistant</p>
-        </div>
-        
+        <!-- Main Interface -->
         <div class="main-interface">
+            <!-- Voice Visualizer -->
             <div class="voice-visualizer" id="visualizer">
                 <div class="pulse"></div>
             </div>
             
+            <!-- Status Text -->
             <div class="status" id="status">
                 <p>Ready to assist</p>
             </div>
-            
-            <div class="controls">
-                <button id="voiceBtn" class="voice-button">
-                    <span>🎤</span>
-                    <span class="btn-text">Click to speak</span>
-                </button>
+        </div>
+
+        <!-- Chat Panel -->
+        <div class="chat-panel" id="chatPanel">
+            <!-- Chat Messages -->
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <p>Hola, soy Jarvis-ADA. ¿En qué puedo ayudarte hoy?</p>
+                </div>
             </div>
-            
-            <div class="response" id="response">
-                <!-- AI responses will appear here -->
+
+            <!-- Input Controls -->
+            <div class="input-controls">
+                <div class="input-wrapper">
+                    <input type="text" 
+                           id="textInput" 
+                           placeholder="Escribe tu mensaje..." 
+                           class="text-input">
+                    <button id="sendBtn" class="send-btn">
+                        <span>➤</span>
+                    </button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="voiceBtn" class="voice-button" title="Hablar">
+                        <span>🎤</span>
+                        <span class="btn-text">Hablar</span>
+                    </button>
+                    <button id="clearBtn" class="clear-button" title="Limpiar chat">
+                        <span>🗑️</span>
+                        <span class="btn-text">Limpiar</span>
+                    </button>
+                </div>
             </div>
         </div>
-        
+
+        <!-- Feature Cards (Bottom) -->
         <div class="features">
             <div class="feature-card">
-                <h3>Voice Control</h3>
-                <p>Control with your voice</p>
+                <h3>🎤 Control de Voz</h3>
+                <p>Habla naturalmente</p>
             </div>
             <div class="feature-card">
-                <h3>AI Powered</h3>
-                <p>Ollama & Gemini integration</p>
+                <h3>🤖 AI Powered</h3>
+                <p>Ollama & Gemini</p>
             </div>
             <div class="feature-card">
-                <h3>Vision</h3>
-                <p>Computer vision capabilities</p>
+                <h3>👁️ Visión</h3>
+                <p>Capacidades visuales</p>
             </div>
         </div>
     </div>
-    
+
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
