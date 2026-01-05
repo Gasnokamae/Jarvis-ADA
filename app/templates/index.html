@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis-ADA - AI Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>JARVIS-ADA</h1>
+            <p class="subtitle">AI Voice Assistant</p>
+        </div>
+        
+        <div class="main-interface">
+            <div class="voice-visualizer" id="visualizer">
+                <div class="pulse"></div>
+            </div>
+            
+            <div class="status" id="status">
+                <p>Ready to assist</p>
+            </div>
+            
+            <div class="controls">
+                <button id="voiceBtn" class="voice-button">
+                    <span>🎤</span>
+                    <span class="btn-text">Click to speak</span>
+                </button>
+            </div>
+            
+            <div class="response" id="response">
+                <!-- AI responses will appear here -->
+            </div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3>Voice Control</h3>
+                <p>Control with your voice</p>
+            </div>
+            <div class="feature-card">
+                <h3>AI Powered</h3>
+                <p>Ollama & Gemini integration</p>
+            </div>
+            <div class="feature-card">
+                <h3>Vision</h3>
+                <p>Computer vision capabilities</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
