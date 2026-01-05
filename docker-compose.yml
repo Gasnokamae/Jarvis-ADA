@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  jarvis-ada:
+    image: python:3.10-slim
+    container_name: jarvis-ada
+    working_dir: /app
+    command: tail -f /dev/null
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OLLAMA_HOST=http://jarvis-ollama:11434
+      - N8N_HOST=${N8N_HOST:-http://localhost:5678}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./app:/app
+      - ./data:/app/data
+    ports:
+      - "8765:8765"
+      - "7777:7777"
+    networks:
+      - jarvis-network
+    depends_on:
+      - jarvis-ollama
+    restart: unless-stopped
+
+  jarvis-ollama:
+    image: ollama/ollama:latest
+    container_name: jarvis-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - jarvis-network
+    restart: unless-stopped
+
+volumes:
+  ollama-data:
+
+networks:
+  jarvis-network:
+    driver: bridge
